@@ -1,6 +1,11 @@
 import OpenAI from 'openai'
 import { BuiltinTheme } from 'shiki'
 
+export type AssistantGroup = {
+  id: string
+  name: string
+  order: number
+}
 export type Assistant = {
   id: string
   name: string
@@ -15,6 +20,7 @@ export type Assistant = {
   settings?: Partial<AssistantSettings>
   messages?: AssistantMessage[]
   enableWebSearch?: boolean
+  groupId?: string
 }
 
 export type AssistantMessage = {

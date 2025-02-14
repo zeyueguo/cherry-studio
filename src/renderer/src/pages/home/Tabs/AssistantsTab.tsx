@@ -1,4 +1,13 @@
-import { DeleteOutlined, EditOutlined, MinusCircleOutlined, PlusOutlined, SaveOutlined } from '@ant-design/icons'
+import {
+  DeleteOutlined,
+  EditOutlined,
+  FolderAddOutlined,
+  FolderOutlined,
+  MinusCircleOutlined,
+  PlusOutlined,
+  SaveOutlined
+} from '@ant-design/icons'
+import { CaretDownOutlined, CaretRightOutlined } from '@ant-design/icons'
 import DragableList from '@renderer/components/DragableList'
 import CopyIcon from '@renderer/components/Icons/CopyIcon'
 import Scrollbar from '@renderer/components/Scrollbar'
@@ -12,6 +21,7 @@ import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { Assistant } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { Dropdown } from 'antd'
+import { Input } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { last, omit } from 'lodash'
 import { FC, useCallback, useState } from 'react'
@@ -31,12 +41,14 @@ const Assistants: FC<Props> = ({
   onCreateAssistant,
   onCreateDefaultAssistant
 }) => {
-  const { assistants, removeAssistant, addAssistant, updateAssistants } = useAssistants()
+  const { assistants, removeAssistant, addAssistant, updateAssistants, groups, moveAssistantToGroup, addGroup } =
+    useAssistants()
   const [dragging, setDragging] = useState(false)
   const { removeAllTopics } = useAssistant(activeAssistant.id)
   const { clickAssistantToShowTopic, topicPosition } = useSettings()
   const { t } = useTranslation()
   const { addAgent } = useAgents()
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
 
   const onDelete = useCallback(
     (assistant: Assistant) => {
@@ -95,6 +107,23 @@ const Assistants: FC<Props> = ({
             })
           }
         },
+        {
+          label: t('assistants.moveToGroup'),
+          key: 'moveToGroup',
+          icon: <FolderOutlined />,
+          children: [
+            {
+              label: t('assistants.ungrouped'),
+              key: 'ungrouped',
+              onClick: () => moveAssistantToGroup(assistant.id, '')
+            },
+            ...(groups || []).map((group) => ({
+              label: group.name,
+              key: group.id,
+              onClick: () => moveAssistantToGroup(assistant.id, group.id)
+            }))
+          ]
+        },
         { type: 'divider' },
         {
           label: t('common.delete'),
@@ -112,7 +141,7 @@ const Assistants: FC<Props> = ({
           }
         }
       ] as ItemType[],
-    [addAgent, addAssistant, onDelete, removeAllTopics, setActiveAssistant, t]
+    [addAgent, addAssistant, onDelete, removeAllTopics, setActiveAssistant, t, groups, moveAssistantToGroup]
   )
 
   const onSwitchAssistant = useCallback(
@@ -128,30 +157,95 @@ const Assistants: FC<Props> = ({
     [clickAssistantToShowTopic, setActiveAssistant, topicPosition]
   )
 
+  const toggleGroup = useCallback((groupId: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }))
+  }, [])
+
+  const createNewGroup = useCallback(() => {
+    let inputValue = ''
+    window.modal.confirm({
+      title: t('assistants.addGroupPrompt'),
+      content: <Input autoFocus onChange={(e) => (inputValue = e.target.value)} />,
+      onOk: () => {
+        if (inputValue.trim()) {
+          addGroup({
+            id: uuid(),
+            name: inputValue.trim(),
+            order: 1
+          })
+        }
+      }
+    })
+  }, [addGroup, t])
+
   return (
     <Container className="assistants-tab">
+      {!dragging && (
+        <GroupItem onClick={createNewGroup}>
+          <FolderAddOutlined style={{ marginRight: 8 }} />
+          {t('assistants.addGroup')}
+        </GroupItem>
+      )}
+
+      {(groups || []).map((group) => (
+        <div key={group.id}>
+          <GroupHeader onClick={() => toggleGroup(group.id)}>
+            {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
+            <GroupName>{group.name}</GroupName>
+          </GroupHeader>
+          {expandedGroups[group.id] && (
+            <DragableList
+              list={assistants.filter((a) => a.groupId === group.id)}
+              onUpdate={updateAssistants}
+              style={{ paddingBottom: dragging ? '34px' : 0 }}
+              onDragStart={() => setDragging(true)}
+              onDragEnd={() => setDragging(false)}>
+              {(assistant) => (
+                <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
+                  <AssistantItem
+                    $hasGroup={!!assistant.groupId}
+                    onClick={() => onSwitchAssistant(assistant)}
+                    className={assistant.id === activeAssistant?.id ? 'active' : ''}>
+                    <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
+                    {assistant.id === activeAssistant?.id && (
+                      <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
+                        <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
+                      </MenuButton>
+                    )}
+                  </AssistantItem>
+                </Dropdown>
+              )}
+            </DragableList>
+          )}
+        </div>
+      ))}
+
       <DragableList
-        list={assistants}
+        list={assistants.filter((a) => !a.groupId)}
         onUpdate={updateAssistants}
         style={{ paddingBottom: dragging ? '34px' : 0 }}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => setDragging(false)}>
-        {(assistant) => {
-          const isCurrent = assistant.id === activeAssistant?.id
-          return (
-            <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
-              <AssistantItem onClick={() => onSwitchAssistant(assistant)} className={isCurrent ? 'active' : ''}>
-                <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
-                {isCurrent && (
-                  <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
-                    <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
-                  </MenuButton>
-                )}
-              </AssistantItem>
-            </Dropdown>
-          )
-        }}
+        {(assistant) => (
+          <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
+            <AssistantItem
+              $hasGroup={!!assistant.groupId}
+              onClick={() => onSwitchAssistant(assistant)}
+              className={assistant.id === activeAssistant?.id ? 'active' : ''}>
+              <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
+              {assistant.id === activeAssistant?.id && (
+                <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
+                  <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
+                </MenuButton>
+              )}
+            </AssistantItem>
+          </Dropdown>
+        )}
       </DragableList>
+
       {!dragging && (
         <AssistantItem onClick={onCreateAssistant}>
           <AssistantName>
@@ -172,7 +266,7 @@ const Container = styled(Scrollbar)`
   user-select: none;
 `
 
-const AssistantItem = styled.div`
+const AssistantItem = styled.div<{ $hasGroup?: boolean }>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
@@ -184,6 +278,7 @@ const AssistantItem = styled.div`
   border-radius: var(--list-item-border-radius);
   border: 0.5px solid transparent;
   cursor: pointer;
+  ${({ $hasGroup }) => $hasGroup && 'padding-left: 24px; margin-top: 5px;'}
   .iconfont {
     opacity: 0;
     color: var(--color-text-3);
@@ -232,6 +327,40 @@ const TopicCount = styled.div`
   flex-direction: row;
   justify-content: center;
   align-items: center;
+`
+
+const GroupHeader = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 7px 12px;
+  margin: 0 10px;
+  cursor: pointer;
+  border-radius: var(--list-item-border-radius);
+  &:hover {
+    background-color: var(--color-background-soft);
+  }
+`
+
+const GroupName = styled.div`
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--color-text);
+`
+
+const GroupItem = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  margin: 0 10px 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  border-radius: var(--list-item-border-radius);
+  &:hover {
+    background-color: var(--color-background-soft);
+  }
+  .anticon {
+    font-size: 14px;
+  }
 `
 
 export default Assistants

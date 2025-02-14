@@ -2,17 +2,19 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { DEFAULT_CONTEXTCOUNT, DEFAULT_TEMPERATURE } from '@renderer/config/constant'
 import { TopicManager } from '@renderer/hooks/useTopic'
 import { getDefaultAssistant, getDefaultTopic } from '@renderer/services/AssistantService'
-import { Assistant, AssistantSettings, Model, Topic } from '@renderer/types'
+import { Assistant, AssistantGroup, AssistantSettings, Model, Topic } from '@renderer/types'
 import { uniqBy } from 'lodash'
 
 export interface AssistantsState {
   defaultAssistant: Assistant
   assistants: Assistant[]
+  groups: AssistantGroup[]
 }
 
 const initialState: AssistantsState = {
   defaultAssistant: getDefaultAssistant(),
-  assistants: [getDefaultAssistant()]
+  assistants: [getDefaultAssistant()],
+  groups: []
 }
 
 const assistantsSlice = createSlice({
@@ -123,6 +125,32 @@ const assistantsSlice = createSlice({
             }
           : assistant
       )
+    },
+    // 分组相关的reducers
+    addGroup: (state, action: PayloadAction<AssistantGroup>) => {
+      if (!state.groups) {
+        state.groups = []
+      }
+      state.groups.push(action.payload)
+    },
+    updateGroup: (state, action: PayloadAction<AssistantGroup>) => {
+      state.groups = state.groups.map((group) => (group.id === action.payload.id ? action.payload : group))
+    },
+    removeGroup: (state, action: PayloadAction<{ id: string }>) => {
+      // 删除分组时，将该分组下的助手移出分组
+      state.assistants = state.assistants.map((assistant) =>
+        assistant.groupId === action.payload.id ? { ...assistant, groupId: undefined } : assistant
+      )
+      state.groups = state.groups.filter((group) => group.id !== action.payload.id)
+    },
+    updateGroups: (state, action: PayloadAction<AssistantGroup[]>) => {
+      state.groups = action.payload
+    },
+    // 将助手移动到指定分组
+    moveAssistantToGroup: (state, action: PayloadAction<{ assistantId: string; groupId: string | undefined }>) => {
+      state.assistants = state.assistants.map((assistant) =>
+        assistant.id === action.payload.assistantId ? { ...assistant, groupId: action.payload.groupId } : assistant
+      )
     }
   }
 })
@@ -139,7 +167,13 @@ export const {
   updateTopics,
   removeAllTopics,
   setModel,
-  updateAssistantSettings
+  updateAssistantSettings,
+  // 导出分组相关的actions
+  addGroup,
+  updateGroup,
+  removeGroup,
+  updateGroups,
+  moveAssistantToGroup
 } = assistantsSlice.actions
 
 export default assistantsSlice.reducer
