@@ -20,8 +20,7 @@ import { getDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { Assistant } from '@renderer/types'
 import { uuid } from '@renderer/utils'
-import { Dropdown } from 'antd'
-import { Input } from 'antd'
+import { Dropdown, Input, Menu } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { last, omit } from 'lodash'
 import { FC, useCallback, useState } from 'react'
@@ -41,8 +40,17 @@ const Assistants: FC<Props> = ({
   onCreateAssistant,
   onCreateDefaultAssistant
 }) => {
-  const { assistants, removeAssistant, addAssistant, updateAssistants, groups, moveAssistantToGroup, addGroup } =
-    useAssistants()
+  const { 
+    assistants, 
+    removeAssistant, 
+    addAssistant, 
+    updateAssistants, 
+    groups, 
+    moveAssistantToGroup, 
+    addGroup,
+    updateGroup,
+    removeGroup 
+  } = useAssistants()
   const [dragging, setDragging] = useState(false)
   const { removeAllTopics } = useAssistant(activeAssistant.id)
   const { clickAssistantToShowTopic, topicPosition } = useSettings()
@@ -164,6 +172,42 @@ const Assistants: FC<Props> = ({
     }))
   }, [])
 
+  const getGroupMenuItems = useCallback((group: Group) => [
+    {
+      label: t('assistants.editGroup'),
+      key: 'edit',
+      icon: <EditOutlined />,
+      onClick: () => {
+        let newName = group.name
+        window.modal.confirm({
+          title: t('assistants.editGroup'),
+          content: <Input 
+            defaultValue={group.name} 
+            autoFocus 
+            onChange={(e) => newName = e.target.value}
+          />,
+          onOk: () => {
+            updateGroup({ ...group, name: newName.trim() })
+          }
+        })
+      }
+    },
+    {
+      label: t('common.delete'),
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => {
+        window.modal.confirm({
+          title: t('assistants.deleteGroupConfirm'),
+          content: t('assistants.deleteGroupContent'),
+          okButtonProps: { danger: true },
+          onOk: () => removeGroup(group.id)
+        })
+      }
+    }
+  ] as ItemType[], [t, updateGroup, removeGroup])
+
   const createNewGroup = useCallback(() => {
     let inputValue = ''
     window.modal.confirm({
@@ -185,10 +229,15 @@ const Assistants: FC<Props> = ({
     <Container className="assistants-tab">
       {(groups || []).map((group) => (
         <div key={group.id}>
-          <GroupHeader onClick={() => toggleGroup(group.id)}>
-            {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
-            <GroupName>{group.name}</GroupName>
-          </GroupHeader>
+          <Dropdown 
+            overlay={<Menu items={getGroupMenuItems(group)} />} 
+            trigger={['contextMenu']}
+          >
+            <GroupHeader onClick={() => toggleGroup(group.id)}>
+              {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
+              <GroupName>{group.name}</GroupName>
+            </GroupHeader>
+          </Dropdown>
           {expandedGroups[group.id] && (
             <DragableList
               list={assistants.filter((a) => a.groupId === group.id)}
