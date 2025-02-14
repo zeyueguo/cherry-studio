@@ -18,7 +18,7 @@ import { useSettings } from '@renderer/hooks/useSettings'
 import AssistantSettingsPopup from '@renderer/pages/settings/AssistantSettings'
 import { getDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
-import { Assistant } from '@renderer/types'
+import { Assistant, AssistantGroup } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { Dropdown, Input, Menu } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -40,16 +40,16 @@ const Assistants: FC<Props> = ({
   onCreateAssistant,
   onCreateDefaultAssistant
 }) => {
-  const { 
-    assistants, 
-    removeAssistant, 
-    addAssistant, 
-    updateAssistants, 
-    groups, 
-    moveAssistantToGroup, 
+  const {
+    assistants,
+    removeAssistant,
+    addAssistant,
+    updateAssistants,
+    groups,
+    moveAssistantToGroup,
     addGroup,
     updateGroup,
-    removeGroup 
+    removeGroup
   } = useAssistants()
   const [dragging, setDragging] = useState(false)
   const { removeAllTopics } = useAssistant(activeAssistant.id)
@@ -172,46 +172,47 @@ const Assistants: FC<Props> = ({
     }))
   }, [])
 
-  const getGroupMenuItems = useCallback((group: Group) => [
-    {
-      label: t('assistants.editGroup'),
-      key: 'edit',
-      icon: <EditOutlined />,
-      onClick: () => {
-        let newName = group.name
-        window.modal.confirm({
-          title: t('assistants.editGroup'),
-          content: <Input 
-            defaultValue={group.name} 
-            autoFocus 
-            onChange={(e) => newName = e.target.value}
-          />,
-          onOk: () => {
-            updateGroup({ ...group, name: newName.trim() })
+  const getGroupMenuItems = useCallback(
+    (group: AssistantGroup) =>
+      [
+        {
+          label: t('assistants.editGroup'),
+          key: 'edit',
+          icon: <EditOutlined />,
+          onClick: () => {
+            let newName = group.name
+            window.modal.confirm({
+              title: t('assistants.editGroup'),
+              content: <Input defaultValue={group.name} autoFocus onChange={(e) => (newName = e.target.value)} />,
+              onOk: () => {
+                updateGroup({ ...group, name: newName.trim() })
+              }
+            })
           }
-        })
-      }
-    },
-    {
-      label: t('common.delete'),
-      key: 'delete',
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => {
-        window.modal.confirm({
-          title: t('assistants.deleteGroupConfirm'),
-          content: t('assistants.deleteGroupContent'),
-          okButtonProps: { danger: true },
-          onOk: () => removeGroup(group.id)
-        })
-      }
-    }
-  ] as ItemType[], [t, updateGroup, removeGroup])
+        },
+        { type: 'divider' },
+        {
+          label: t('common.delete'),
+          key: 'delete',
+          icon: <DeleteOutlined />,
+          danger: true,
+          onClick: () => {
+            window.modal.confirm({
+              title: t('assistants.deleteGroupConfirm'),
+              content: t('assistants.deleteGroupContent'),
+              okButtonProps: { danger: true },
+              onOk: () => removeGroup(group.id)
+            })
+          }
+        }
+      ] as ItemType[],
+    [t, updateGroup, removeGroup]
+  )
 
   const createNewGroup = useCallback(() => {
     let inputValue = ''
     window.modal.confirm({
-      title: t('assistants.addGroupPrompt'),
+      title: t('assistants.addGroup'),
       content: <Input autoFocus onChange={(e) => (inputValue = e.target.value)} />,
       onOk: () => {
         if (inputValue.trim()) {
@@ -229,10 +230,7 @@ const Assistants: FC<Props> = ({
     <Container className="assistants-tab">
       {(groups || []).map((group) => (
         <div key={group.id}>
-          <Dropdown 
-            overlay={<Menu items={getGroupMenuItems(group)} />} 
-            trigger={['contextMenu']}
-          >
+          <Dropdown overlay={<Menu items={getGroupMenuItems(group)} />} trigger={['contextMenu']}>
             <GroupHeader onClick={() => toggleGroup(group.id)}>
               {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
               <GroupName>{group.name}</GroupName>
@@ -399,6 +397,9 @@ const GroupItem = styled.div`
   display: flex;
   align-items: center;
   padding: 8px 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   margin: 0 10px 8px;
   cursor: pointer;
   color: var(--color-text);

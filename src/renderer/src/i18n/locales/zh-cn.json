@@ -54,6 +54,10 @@
       "settings.reasoning_effort.tip": "该设置仅支持推理模型",
       "title": "助手",
       "addGroup": "添加分组",
+      "editGroup": "编辑分组",
+      "deleteGroup": "删除分组",
+      "deleteGroupConfirm": "确定要删除此分组吗？",
+      "deleteGroupContent": "删除分组会删除分组，不会删除分组下的助手",
       "addGroupPrompt": "请输入分组名称",
       "ungrouped": "未分组",
       "moveToGroup": "移动到分组"
