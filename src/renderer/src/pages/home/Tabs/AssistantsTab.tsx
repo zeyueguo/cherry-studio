@@ -183,13 +183,6 @@ const Assistants: FC<Props> = ({
 
   return (
     <Container className="assistants-tab">
-      {!dragging && (
-        <GroupItem onClick={createNewGroup}>
-          <FolderAddOutlined style={{ marginRight: 8 }} />
-          {t('assistants.addGroup')}
-        </GroupItem>
-      )}
-
       {(groups || []).map((group) => (
         <div key={group.id}>
           <GroupHeader onClick={() => toggleGroup(group.id)}>
@@ -253,6 +246,12 @@ const Assistants: FC<Props> = ({
             {t('chat.add.assistant.title')}
           </AssistantName>
         </AssistantItem>
+      )}
+      {!dragging && (
+        <GroupItem onClick={createNewGroup}>
+          <FolderAddOutlined style={{ marginRight: 4 }} />
+          {t('assistants.addGroup')}
+        </GroupItem>
       )}
       <div style={{ minHeight: 10 }}></div>
     </Container>
