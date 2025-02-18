@@ -226,6 +226,37 @@ const Assistants: FC<Props> = ({
     })
   }, [addGroup, t])
 
+  // 新增扁平化数据结构和拖动更新处理逻辑
+  const getFlattenList = () => {
+    const list: any[] = []
+    groups.forEach((group) => {
+      list.push({ type: 'group', ...group })
+      if (expandedGroups[group.id]) {
+        list.push(...assistants.filter((a) => a.groupId === group.id).map((a) => ({ ...a, type: 'assistant' })))
+      }
+    })
+    // 添加未分组头部
+    list.push({ type: 'group', id: 'ungrouped', name: t('assistants.ungrouped') })
+    const ungroupedExpanded = expandedGroups['ungrouped'] === undefined ? true : expandedGroups['ungrouped']
+    if (ungroupedExpanded) {
+      list.push(...assistants.filter((a) => !a.groupId).map((a) => ({ ...a, type: 'assistant' })))
+    }
+    return list
+  }
+
+  const handleDragUpdate = (newList: any[]) => {
+    const updatedAssistants: Assistant[] = []
+    let currentGroupId = ''
+    newList.forEach((item) => {
+      if (item.type === 'group') {
+        currentGroupId = item.id
+      } else {
+        updatedAssistants.push({ ...item, groupId: currentGroupId === 'ungrouped' ? '' : currentGroupId })
+      }
+    })
+    updateAssistants(updatedAssistants)
+  }
+
   const renderAssistantItem = (assistant: Assistant) => {
     return (
       <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
@@ -246,55 +277,42 @@ const Assistants: FC<Props> = ({
 
   return (
     <Container className="assistants-tab">
-      {(groups || []).map((group) => (
-        <div key={group.id}>
-          <Dropdown menu={{ items: getGroupMenuItems(group) }} trigger={['contextMenu']}>
-            <GroupHeader onClick={() => toggleGroup(group.id)}>
-              {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
-              <GroupName>{group.name}</GroupName>
-            </GroupHeader>
-          </Dropdown>
-          {expandedGroups[group.id] && (
-            <DragableList
-              list={assistants.filter((a) => a.groupId === group.id)}
-              onUpdate={(newGroupList) => {
-                const otherAssistants = assistants.filter((a) => a.groupId !== group.id)
-                updateAssistants([...otherAssistants, ...newGroupList])
-              }}
-              style={{ paddingBottom: dragging ? '34px' : 0 }}
-              onDragStart={() => setDragging(true)}
-              onDragEnd={() => setDragging(false)}>
-              {(assistant) => renderAssistantItem(assistant)}
-            </DragableList>
-          )}
-        </div>
-      ))}
-
       <DragableList
-        list={assistants.filter((a) => !a.groupId)}
-        onUpdate={(newUngroupedList) => {
-          const groupedAssistants = assistants.filter((a) => !!a.groupId)
-          updateAssistants([...groupedAssistants, ...newUngroupedList])
-        }}
-        style={{ paddingBottom: dragging ? '34px' : 0 }}
+        list={getFlattenList()}
+        onUpdate={handleDragUpdate}
+        itemKey="id"
+        itemHeight={45}
+        useVirtualScroll={true}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => setDragging(false)}>
-        {(assistant) => renderAssistantItem(assistant)}
+        {(item) => {
+          if (item.type === 'group') {
+            return (
+              <Dropdown key={item.id} menu={{ items: getGroupMenuItems(item) }} trigger={['contextMenu']}>
+                <GroupHeader onClick={() => toggleGroup(item.id)}>
+                  {expandedGroups[item.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
+                  <GroupName>{item.name}</GroupName>
+                </GroupHeader>
+              </Dropdown>
+            )
+          }
+          return renderAssistantItem(item)
+        }}
       </DragableList>
 
       {!dragging && (
-        <AssistantItem onClick={onCreateAssistant}>
-          <AssistantName>
-            <PlusOutlined style={{ color: 'var(--color-text-2)', marginRight: 4 }} />
-            {t('chat.add.assistant.title')}
-          </AssistantName>
-        </AssistantItem>
-      )}
-      {!dragging && (
-        <GroupItem onClick={createNewGroup}>
-          <FolderAddOutlined style={{ marginRight: 4 }} />
-          {t('assistants.addGroup')}
-        </GroupItem>
+        <>
+          <AssistantItem onClick={onCreateAssistant}>
+            <AssistantName>
+              <PlusOutlined style={{ marginRight: 4 }} />
+              {t('chat.add.assistant.title')}
+            </AssistantName>
+          </AssistantItem>
+          <GroupItem onClick={createNewGroup}>
+            <FolderAddOutlined style={{ marginRight: 4 }} />
+            {t('assistants.addGroup')}
+          </GroupItem>
+        </>
       )}
       <div style={{ minHeight: 10 }}></div>
     </Container>
@@ -378,8 +396,19 @@ const GroupHeader = styled.div`
   margin: 0 10px;
   cursor: pointer;
   border-radius: var(--list-item-border-radius);
-  &:hover {
-    background-color: var(--color-background-soft);
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 24px;
+    right: 0;
+    height: 1px;
+    background: var(--color-border);
+    transition: all 0.3s;
+  }
+  &:hover::after {
+    background: var(--color-primary);
   }
 `
 
