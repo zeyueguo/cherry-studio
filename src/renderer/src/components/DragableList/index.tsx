@@ -48,9 +48,9 @@ const DragableList: FC<Props<any>> = ({
         {(provided) => (
           <div {...provided.droppableProps} ref={provided.innerRef} style={{ ...style }}>
             {list.map((item, index) => {
-              const id = item.id || item
+              const id = item.id || `item_ungrouped`
               return (
-                <Draggable key={`draggable_${id}_${index}`} draggableId={id} index={index} {...droppableProps}>
+                <Draggable key={`draggable_${id}_${index}`} draggableId={String(id)} index={index} {...droppableProps}>
                   {(provided) => (
                     <div
                       ref={provided.innerRef}

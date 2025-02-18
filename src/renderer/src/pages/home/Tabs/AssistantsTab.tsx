@@ -16,9 +16,9 @@ import { useAssistant, useAssistants } from '@renderer/hooks/useAssistant'
 import { modelGenerating } from '@renderer/hooks/useRuntime'
 import { useSettings } from '@renderer/hooks/useSettings'
 import AssistantSettingsPopup from '@renderer/pages/settings/AssistantSettings'
-import { getDefaultTopic } from '@renderer/services/AssistantService'
+import { getDefaultAssistant, getDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
-import { Assistant, AssistantGroup } from '@renderer/types'
+import { Assistant } from '@renderer/types'
 import { uuid } from '@renderer/utils'
 import { Dropdown, Input } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
@@ -40,17 +40,7 @@ const Assistants: FC<Props> = ({
   onCreateAssistant,
   onCreateDefaultAssistant
 }) => {
-  const {
-    assistants,
-    removeAssistant,
-    addAssistant,
-    updateAssistants,
-    groups,
-    moveAssistantToGroup,
-    addGroup,
-    updateGroup,
-    removeGroup
-  } = useAssistants()
+  const { assistants, removeAssistant, addAssistant, updateAssistants, moveAssistantToGroup } = useAssistants()
   const [dragging, setDragging] = useState(false)
   const { removeAllTopics } = useAssistant(activeAssistant.id)
   const { clickAssistantToShowTopic, topicPosition } = useSettings()
@@ -125,7 +115,7 @@ const Assistants: FC<Props> = ({
               key: 'ungrouped',
               onClick: () => moveAssistantToGroup(assistant.id, '')
             },
-            ...(groups || []).map((group) => ({
+            ...getGroupedAssistants().map((group) => ({
               label: group.name,
               key: group.id,
               onClick: () => moveAssistantToGroup(assistant.id, group.id)
@@ -149,7 +139,7 @@ const Assistants: FC<Props> = ({
           }
         }
       ] as ItemType[],
-    [addAgent, addAssistant, onDelete, removeAllTopics, setActiveAssistant, t, groups, moveAssistantToGroup]
+    [addAgent, addAssistant, onDelete, removeAllTopics, setActiveAssistant, t, moveAssistantToGroup]
   )
 
   const onSwitchAssistant = useCallback(
@@ -173,7 +163,7 @@ const Assistants: FC<Props> = ({
   }, [])
 
   const getGroupMenuItems = useCallback(
-    (group: AssistantGroup) =>
+    (group: { id: string; name: string }) =>
       [
         {
           label: t('assistants.editGroup'),
@@ -185,7 +175,10 @@ const Assistants: FC<Props> = ({
               title: t('assistants.editGroup'),
               content: <Input defaultValue={group.name} autoFocus onChange={(e) => (newName = e.target.value)} />,
               onOk: () => {
-                updateGroup({ ...group, name: newName.trim() })
+                const groupedAssistants = assistants.filter((a) => a.groupId === group.id)
+                groupedAssistants.forEach((assistant) => {
+                  moveAssistantToGroup(assistant.id, newName.trim())
+                })
               }
             })
           }
@@ -201,12 +194,17 @@ const Assistants: FC<Props> = ({
               title: t('assistants.deleteGroupConfirm'),
               content: t('assistants.deleteGroupContent'),
               okButtonProps: { danger: true },
-              onOk: () => removeGroup(group.id)
+              onOk: () => {
+                const groupedAssistants = assistants.filter((a) => a.groupId === group.id)
+                groupedAssistants.forEach((assistant) => {
+                  moveAssistantToGroup(assistant.id, '')
+                })
+              }
             })
           }
         }
       ] as ItemType[],
-    [t, updateGroup, removeGroup]
+    [t, moveAssistantToGroup, assistants]
   )
 
   const createNewGroup = useCallback(() => {
@@ -216,21 +214,33 @@ const Assistants: FC<Props> = ({
       content: <Input autoFocus onChange={(e) => (inputValue = e.target.value)} />,
       onOk: () => {
         if (inputValue.trim()) {
-          addGroup({
+          const newAssistant: Assistant = {
+            ...getDefaultAssistant(),
             id: uuid(),
             name: inputValue.trim(),
-            order: 1
-          })
+            groupId: inputValue.trim()
+          }
+          addAssistant(newAssistant)
+          setActiveAssistant(newAssistant)
         }
       }
     })
-  }, [addGroup, t])
+  }, [addAssistant, t, setActiveAssistant])
 
-  // 新增扁平化数据结构和拖动更新处理逻辑
+  const getGroupedAssistants = useCallback(() => {
+    const grouped: { id: string; name: string }[] = []
+    assistants.forEach((assistant) => {
+      if (assistant.groupId && !grouped.find((g) => g.id === assistant.groupId)) {
+        grouped.push({ id: assistant.groupId, name: assistant.groupId })
+      }
+    })
+    return grouped
+  }, [assistants])
+
   const getFlattenList = () => {
     const list: any[] = []
 
-    groups.forEach((group) => {
+    getGroupedAssistants().forEach((group) => {
       list.push({ type: 'group', ...group })
       if (expandedGroups[group.id]) {
         list.push(...assistants.filter((a) => a.groupId === group.id).map((a) => ({ ...a, type: 'assistant' })))
@@ -255,7 +265,6 @@ const Assistants: FC<Props> = ({
     const updatedAssistants: Assistant[] = []
     let currentGroupId = ''
 
-    // 跟踪受影响的分组
     const affectedGroups = new Set<string>()
 
     newList.forEach((item) => {
@@ -284,12 +293,11 @@ const Assistants: FC<Props> = ({
       }
     })
 
-    // 自动展开受影响的分组
     setExpandedGroups((prev) => ({
       ...prev,
       ...Array.from(affectedGroups).reduce(
         (acc, groupId) => {
-          acc[groupId] = true // 统一处理所有分组包括未分组
+          acc[groupId] = true
           return acc
         },
         {} as Record<string, boolean>
@@ -333,11 +341,7 @@ const Assistants: FC<Props> = ({
                     {expandedGroups[item.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
                     <GroupName>{item.name}</GroupName>
                   </div>
-                  <CountBadge>
-                    {item.id === ''
-                      ? assistants.filter((a) => !a.groupId).length
-                      : assistants.filter((a) => a.groupId === item.id).length}
-                  </CountBadge>
+                  <CountBadge>{assistants.filter((a) => a.groupId === item.id).length}</CountBadge>
                 </GroupHeader>
               </Dropdown>
             )
@@ -354,10 +358,10 @@ const Assistants: FC<Props> = ({
               {t('chat.add.assistant.title')}
             </AssistantName>
           </AssistantItem>
-          <GroupItem onClick={createNewGroup}>
+          <AssistantItem onClick={createNewGroup}>
             <FolderAddOutlined style={{ marginRight: 4 }} />
             {t('assistants.addGroup')}
-          </GroupItem>
+          </AssistantItem>
         </>
       )}
       <div style={{ minHeight: 10 }}></div>
@@ -473,25 +477,6 @@ const GroupName = styled.div`
   margin-left: 8px;
   font-size: 13px;
   color: var(--color-text);
-`
-
-const GroupItem = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  margin: 0 10px 8px;
-  cursor: pointer;
-  color: var(--color-text);
-  border-radius: var(--list-item-border-radius);
-  &:hover {
-    background-color: var(--color-background-soft);
-  }
-  .anticon {
-    font-size: 14px;
-  }
 `
 
 export default Assistants

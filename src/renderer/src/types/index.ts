@@ -1,11 +1,6 @@
 import OpenAI from 'openai'
 import { BuiltinTheme } from 'shiki'
 
-export type AssistantGroup = {
-  id: string
-  name: string
-  order: number
-}
 export type Assistant = {
   id: string
   name: string
@@ -141,7 +136,8 @@ export interface Painting {
   files: FileType[]
   prompt?: string
   negativePrompt?: string
-  imageSize?: string
+  imageSize?: str
+  ng
   numImages?: number
   seed?: string
   steps?: number

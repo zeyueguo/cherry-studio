@@ -3,34 +3,30 @@ import { getDefaultTopic } from '@renderer/services/AssistantService'
 import { useAppDispatch, useAppSelector } from '@renderer/store'
 import {
   addAssistant,
-  addGroup,
   addTopic,
   moveAssistantToGroup,
   removeAllTopics,
   removeAssistant,
-  removeGroup,
   removeTopic,
   setModel,
   updateAssistant,
   updateAssistants,
   updateAssistantSettings,
   updateDefaultAssistant,
-  updateGroup,
   updateTopic,
   updateTopics
 } from '@renderer/store/assistants'
 import { setDefaultModel, setTopicNamingModel, setTranslateModel } from '@renderer/store/llm'
-import { Assistant, AssistantGroup, AssistantSettings, Model, Topic } from '@renderer/types'
+import { Assistant, AssistantSettings, Model, Topic } from '@renderer/types'
 
 import { TopicManager } from './useTopic'
 
 export function useAssistants() {
-  const { assistants, groups } = useAppSelector((state) => state.assistants)
+  const { assistants } = useAppSelector((state) => state.assistants)
   const dispatch = useAppDispatch()
 
   return {
     assistants,
-    groups,
     updateAssistants: (assistants: Assistant[]) => dispatch(updateAssistants(assistants)),
     addAssistant: (assistant: Assistant) => dispatch(addAssistant(assistant)),
     removeAssistant: (id: string) => {
@@ -39,11 +35,8 @@ export function useAssistants() {
       const topics = assistant?.topics || []
       topics.forEach(({ id }) => TopicManager.removeTopic(id))
     },
-    addGroup: (group: AssistantGroup) => dispatch(addGroup(group)),
-    removeGroup: (id: string) => dispatch(removeGroup({ id })),
-    updateGroup: (group: AssistantGroup) => dispatch(updateGroup(group)),
     moveAssistantToGroup: (assistantId: string, groupId: string) => {
-      const normalizedGroupId = groupId === 'ungrouped' ? '' : groupId;
+      const normalizedGroupId = groupId === 'ungrouped' ? '' : groupId
       dispatch(moveAssistantToGroup({ assistantId, groupId: normalizedGroupId }))
     }
   }
