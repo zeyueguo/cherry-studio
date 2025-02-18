@@ -20,7 +20,7 @@ import { getDefaultTopic } from '@renderer/services/AssistantService'
 import { EVENT_NAMES, EventEmitter } from '@renderer/services/EventService'
 import { Assistant, AssistantGroup } from '@renderer/types'
 import { uuid } from '@renderer/utils'
-import { Dropdown, Input, Menu } from 'antd'
+import { Dropdown, Input } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import { last, omit } from 'lodash'
 import { FC, useCallback, useState } from 'react'
@@ -230,7 +230,7 @@ const Assistants: FC<Props> = ({
     <Container className="assistants-tab">
       {(groups || []).map((group) => (
         <div key={group.id}>
-          <Dropdown overlay={<Menu items={getGroupMenuItems(group)} />} trigger={['contextMenu']}>
+          <Dropdown menu={{ items: getGroupMenuItems(group) }} trigger={['contextMenu']}>
             <GroupHeader onClick={() => toggleGroup(group.id)}>
               {expandedGroups[group.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
               <GroupName>{group.name}</GroupName>
