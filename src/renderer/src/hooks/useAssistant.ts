@@ -42,8 +42,10 @@ export function useAssistants() {
     addGroup: (group: AssistantGroup) => dispatch(addGroup(group)),
     removeGroup: (id: string) => dispatch(removeGroup({ id })),
     updateGroup: (group: AssistantGroup) => dispatch(updateGroup(group)),
-    moveAssistantToGroup: (assistantId: string, groupId: string) =>
-      dispatch(moveAssistantToGroup({ assistantId, groupId }))
+    moveAssistantToGroup: (assistantId: string, groupId: string) => {
+      const normalizedGroupId = groupId === 'ungrouped' ? '' : groupId;
+      dispatch(moveAssistantToGroup({ assistantId, groupId: normalizedGroupId }))
+    }
   }
 }
 

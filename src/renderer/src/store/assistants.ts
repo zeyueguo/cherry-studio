@@ -28,7 +28,11 @@ const assistantsSlice = createSlice({
       state.assistants = action.payload
     },
     addAssistant: (state, action: PayloadAction<Assistant>) => {
-      state.assistants.push(action.payload)
+      const newAssistant = {
+        ...action.payload,
+        groupId: action.payload.groupId || ''
+      };
+      state.assistants.push(newAssistant)
     },
     removeAssistant: (state, action: PayloadAction<{ id: string }>) => {
       state.assistants = state.assistants.filter((c) => c.id !== action.payload.id)
@@ -147,9 +151,13 @@ const assistantsSlice = createSlice({
       state.groups = action.payload
     },
     // 将助手移动到指定分组
-    moveAssistantToGroup: (state, action: PayloadAction<{ assistantId: string; groupId: string | undefined }>) => {
+    moveAssistantToGroup: (state, action: PayloadAction<{ assistantId: string; groupId: string }>) => {
+      const { assistantId, groupId } = action.payload;
       state.assistants = state.assistants.map((assistant) =>
-        assistant.id === action.payload.assistantId ? { ...assistant, groupId: action.payload.groupId } : assistant
+        assistant.id === assistantId ? {
+          ...assistant,
+          groupId: groupId === 'ungrouped' ? '' : groupId
+        } : assistant
       )
     }
   }
