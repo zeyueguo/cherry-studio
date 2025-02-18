@@ -229,39 +229,33 @@ const Assistants: FC<Props> = ({
   // 新增扁平化数据结构和拖动更新处理逻辑
   const getFlattenList = () => {
     const list: any[] = []
-    
+
     groups.forEach((group) => {
       list.push({ type: 'group', ...group })
       if (expandedGroups[group.id]) {
-        list.push(...assistants
-          .filter(a => a.groupId === group.id)
-          .map(a => ({ ...a, type: 'assistant' }))
-        )
+        list.push(...assistants.filter((a) => a.groupId === group.id).map((a) => ({ ...a, type: 'assistant' })))
       }
     })
 
-    list.push({ 
-      type: 'group', 
+    list.push({
+      type: 'group',
       id: 'ungrouped',
       name: t('assistants.ungrouped')
     })
-    
+
     const ungroupedExpanded = expandedGroups['ungrouped'] ?? true
     if (ungroupedExpanded) {
-      list.push(...assistants
-        .filter(a => !a.groupId)
-        .map(a => ({ ...a, type: 'assistant' }))
-      )
+      list.push(...assistants.filter((a) => !a.groupId).map((a) => ({ ...a, type: 'assistant' })))
     }
-    
+
     return list
   }
 
   const handleDragUpdate = (newList: any[]) => {
-    const originalAssistantsMap = new Map(assistants.map(a => [a.id, a]))
+    const originalAssistantsMap = new Map(assistants.map((a) => [a.id, a]))
     const updatedAssistants: Assistant[] = []
     let currentGroupId = ''
-    
+
     // 跟踪受影响的分组
     const affectedGroups = new Set<string>()
 
@@ -272,12 +266,12 @@ const Assistants: FC<Props> = ({
       } else {
         const original = originalAssistantsMap.get(item.id)
         const newGroupId = currentGroupId === 'ungrouped' ? '' : currentGroupId
-        
+
         // 如果分组发生了变化，将目标分组添加到受影响列表
         if (original?.groupId !== newGroupId) {
           affectedGroups.add(currentGroupId)
         }
-        
+
         updatedAssistants.push({
           ...original,
           ...item,
@@ -286,21 +280,24 @@ const Assistants: FC<Props> = ({
       }
     })
 
-    assistants.forEach(assistant => {
-      if (!updatedAssistants.some(a => a.id === assistant.id)) {
+    assistants.forEach((assistant) => {
+      if (!updatedAssistants.some((a) => a.id === assistant.id)) {
         updatedAssistants.push(assistant)
       }
     })
 
     // 自动展开受影响的分组
-    setExpandedGroups(prev => ({
+    setExpandedGroups((prev) => ({
       ...prev,
-      ...Array.from(affectedGroups).reduce((acc, groupId) => {
-        if (groupId !== 'ungrouped') {
-          acc[groupId] = true // 强制展开受影响的分组
-        }
-        return acc
-      }, {} as Record<string, boolean>)
+      ...Array.from(affectedGroups).reduce(
+        (acc, groupId) => {
+          if (groupId !== 'ungrouped') {
+            acc[groupId] = true // 强制展开受影响的分组
+          }
+          return acc
+        },
+        {} as Record<string, boolean>
+      )
     }))
 
     updateAssistants(updatedAssistants)
@@ -329,9 +326,6 @@ const Assistants: FC<Props> = ({
       <DragableList
         list={getFlattenList()}
         onUpdate={handleDragUpdate}
-        itemKey="id"
-        itemHeight={45}
-        useVirtualScroll={true}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => setDragging(false)}>
         {(item) => {
@@ -344,9 +338,9 @@ const Assistants: FC<Props> = ({
                     <GroupName>{item.name}</GroupName>
                   </div>
                   <CountBadge>
-                    {item.id === 'ungrouped' 
-                      ? assistants.filter(a => !a.groupId).length
-                      : assistants.filter(a => a.groupId === item.id).length}
+                    {item.id === 'ungrouped'
+                      ? assistants.filter((a) => !a.groupId).length
+                      : assistants.filter((a) => a.groupId === item.id).length}
                   </CountBadge>
                 </GroupHeader>
               </Dropdown>
