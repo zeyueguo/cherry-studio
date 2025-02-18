@@ -229,31 +229,58 @@ const Assistants: FC<Props> = ({
   // 新增扁平化数据结构和拖动更新处理逻辑
   const getFlattenList = () => {
     const list: any[] = []
+    
     groups.forEach((group) => {
       list.push({ type: 'group', ...group })
       if (expandedGroups[group.id]) {
-        list.push(...assistants.filter((a) => a.groupId === group.id).map((a) => ({ ...a, type: 'assistant' })))
+        list.push(...assistants
+          .filter(a => a.groupId === group.id)
+          .map(a => ({ ...a, type: 'assistant' }))
+        )
       }
     })
-    // 添加未分组头部
-    list.push({ type: 'group', id: 'ungrouped', name: t('assistants.ungrouped') })
-    const ungroupedExpanded = expandedGroups['ungrouped'] === undefined ? true : expandedGroups['ungrouped']
+
+    list.push({ 
+      type: 'group', 
+      id: 'ungrouped',
+      name: t('assistants.ungrouped')
+    })
+    
+    const ungroupedExpanded = expandedGroups['ungrouped'] ?? true
     if (ungroupedExpanded) {
-      list.push(...assistants.filter((a) => !a.groupId).map((a) => ({ ...a, type: 'assistant' })))
+      list.push(...assistants
+        .filter(a => !a.groupId)
+        .map(a => ({ ...a, type: 'assistant' }))
+      )
     }
+    
     return list
   }
 
   const handleDragUpdate = (newList: any[]) => {
+    const originalAssistantsMap = new Map(assistants.map(a => [a.id, a]))
     const updatedAssistants: Assistant[] = []
     let currentGroupId = ''
+
     newList.forEach((item) => {
       if (item.type === 'group') {
-        currentGroupId = item.id
+        currentGroupId = item.id === 'ungrouped' ? '' : item.id
       } else {
-        updatedAssistants.push({ ...item, groupId: currentGroupId === 'ungrouped' ? '' : currentGroupId })
+        const original = originalAssistantsMap.get(item.id)
+        updatedAssistants.push({
+          ...original,
+          ...item,
+          groupId: currentGroupId === 'ungrouped' ? '' : currentGroupId
+        })
       }
     })
+
+    assistants.forEach(assistant => {
+      if (!updatedAssistants.some(a => a.id === assistant.id)) {
+        updatedAssistants.push(assistant)
+      }
+    })
+
     updateAssistants(updatedAssistants)
   }
 
