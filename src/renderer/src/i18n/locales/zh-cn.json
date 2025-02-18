@@ -547,7 +547,6 @@
       "assistant": "默认助手",
       "assistant.model_params": "模型参数",
       "assistant.title": "默认助手",
-      "assistant.addGroup": "添加分组",
       "data": {
         "app_data": "应用数据",
         "app_logs": "应用日志",

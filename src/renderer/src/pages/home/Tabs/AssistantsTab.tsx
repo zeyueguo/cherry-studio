@@ -364,7 +364,7 @@ const Assistants: FC<Props> = ({
           </AssistantItem>
         </>
       )}
-      <div style={{ minHeight: 10 }}></div>
+      <div style={{ minHeight: 40 }}></div>
     </Container>
   )
 }
@@ -378,8 +378,6 @@ const Container = styled(Scrollbar)`
 
 const AssistantItem = styled.div<{ $hasGroup?: boolean }>`
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   padding: 7px 12px;
   position: relative;
   margin: 0 10px;
