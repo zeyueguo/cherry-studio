@@ -257,7 +257,10 @@ const Assistants: FC<Props> = ({
           {expandedGroups[group.id] && (
             <DragableList
               list={assistants.filter((a) => a.groupId === group.id)}
-              onUpdate={updateAssistants}
+              onUpdate={(newGroupList) => {
+                const otherAssistants = assistants.filter((a) => a.groupId !== group.id)
+                updateAssistants([...otherAssistants, ...newGroupList])
+              }}
               style={{ paddingBottom: dragging ? '34px' : 0 }}
               onDragStart={() => setDragging(true)}
               onDragEnd={() => setDragging(false)}>
@@ -269,7 +272,10 @@ const Assistants: FC<Props> = ({
 
       <DragableList
         list={assistants.filter((a) => !a.groupId)}
-        onUpdate={updateAssistants}
+        onUpdate={(newUngroupedList) => {
+          const groupedAssistants = assistants.filter((a) => !!a.groupId)
+          updateAssistants([...groupedAssistants, ...newUngroupedList])
+        }}
         style={{ paddingBottom: dragging ? '34px' : 0 }}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => setDragging(false)}>
