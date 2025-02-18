@@ -168,7 +168,7 @@ const Assistants: FC<Props> = ({
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) => ({
       ...prev,
-      [groupId]: groupId === '' ? true : !prev[groupId]
+      [groupId]: !prev[groupId]
     }))
   }, [])
 
@@ -243,7 +243,7 @@ const Assistants: FC<Props> = ({
       name: t('assistants.ungrouped')
     })
 
-    if (expandedGroups[''] !== false) {
+    if (expandedGroups['']) {
       list.push(...assistants.filter((a) => !a.groupId).map((a) => ({ ...a, type: 'assistant' })))
     }
 
@@ -260,13 +260,12 @@ const Assistants: FC<Props> = ({
 
     newList.forEach((item) => {
       if (item.type === 'group') {
-        currentGroupId = item.id === 'ungrouped' ? '' : item.id
+        currentGroupId = item.id
         affectedGroups.add(currentGroupId)
       } else {
         const original = originalAssistantsMap.get(item.id)
-        const newGroupId = currentGroupId === 'ungrouped' ? '' : currentGroupId
+        const newGroupId = currentGroupId
 
-        // 如果分组发生了变化，将目标分组添加到受影响列表
         if (original?.groupId !== newGroupId) {
           affectedGroups.add(currentGroupId)
         }
@@ -290,9 +289,7 @@ const Assistants: FC<Props> = ({
       ...prev,
       ...Array.from(affectedGroups).reduce(
         (acc, groupId) => {
-          if (groupId !== 'ungrouped') {
-            acc[groupId] = true // 强制展开受影响的分组
-          }
+          acc[groupId] = true // 统一处理所有分组包括未分组
           return acc
         },
         {} as Record<string, boolean>
@@ -337,7 +334,7 @@ const Assistants: FC<Props> = ({
                     <GroupName>{item.name}</GroupName>
                   </div>
                   <CountBadge>
-                    {item.id === 'ungrouped'
+                    {item.id === ''
                       ? assistants.filter((a) => !a.groupId).length
                       : assistants.filter((a) => a.groupId === item.id).length}
                   </CountBadge>
