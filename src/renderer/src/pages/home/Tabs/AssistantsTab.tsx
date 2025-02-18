@@ -168,7 +168,7 @@ const Assistants: FC<Props> = ({
   const toggleGroup = useCallback((groupId: string) => {
     setExpandedGroups((prev) => ({
       ...prev,
-      [groupId]: !prev[groupId]
+      [groupId]: groupId === '' ? true : !prev[groupId]
     }))
   }, [])
 
@@ -239,12 +239,11 @@ const Assistants: FC<Props> = ({
 
     list.push({
       type: 'group',
-      id: 'ungrouped',
+      id: '',
       name: t('assistants.ungrouped')
     })
 
-    const ungroupedExpanded = expandedGroups['ungrouped'] ?? true
-    if (ungroupedExpanded) {
+    if (expandedGroups[''] !== false) {
       list.push(...assistants.filter((a) => !a.groupId).map((a) => ({ ...a, type: 'assistant' })))
     }
 
@@ -262,7 +261,7 @@ const Assistants: FC<Props> = ({
     newList.forEach((item) => {
       if (item.type === 'group') {
         currentGroupId = item.id === 'ungrouped' ? '' : item.id
-        affectedGroups.add(item.id)
+        affectedGroups.add(currentGroupId)
       } else {
         const original = originalAssistantsMap.get(item.id)
         const newGroupId = currentGroupId === 'ungrouped' ? '' : currentGroupId
