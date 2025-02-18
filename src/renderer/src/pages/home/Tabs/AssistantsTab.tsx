@@ -226,6 +226,24 @@ const Assistants: FC<Props> = ({
     })
   }, [addGroup, t])
 
+  const renderAssistantItem = (assistant: Assistant) => {
+    return (
+      <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
+        <AssistantItem
+          $hasGroup={!!assistant.groupId}
+          onClick={() => onSwitchAssistant(assistant)}
+          className={assistant.id === activeAssistant?.id ? 'active' : ''}>
+          <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
+          {assistant.id === activeAssistant?.id && (
+            <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
+              <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
+            </MenuButton>
+          )}
+        </AssistantItem>
+      </Dropdown>
+    )
+  }
+
   return (
     <Container className="assistants-tab">
       {(groups || []).map((group) => (
@@ -243,21 +261,7 @@ const Assistants: FC<Props> = ({
               style={{ paddingBottom: dragging ? '34px' : 0 }}
               onDragStart={() => setDragging(true)}
               onDragEnd={() => setDragging(false)}>
-              {(assistant) => (
-                <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
-                  <AssistantItem
-                    $hasGroup={!!assistant.groupId}
-                    onClick={() => onSwitchAssistant(assistant)}
-                    className={assistant.id === activeAssistant?.id ? 'active' : ''}>
-                    <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
-                    {assistant.id === activeAssistant?.id && (
-                      <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
-                        <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
-                      </MenuButton>
-                    )}
-                  </AssistantItem>
-                </Dropdown>
-              )}
+              {(assistant) => renderAssistantItem(assistant)}
             </DragableList>
           )}
         </div>
@@ -269,21 +273,7 @@ const Assistants: FC<Props> = ({
         style={{ paddingBottom: dragging ? '34px' : 0 }}
         onDragStart={() => setDragging(true)}
         onDragEnd={() => setDragging(false)}>
-        {(assistant) => (
-          <Dropdown key={assistant.id} menu={{ items: getMenuItems(assistant) }} trigger={['contextMenu']}>
-            <AssistantItem
-              $hasGroup={!!assistant.groupId}
-              onClick={() => onSwitchAssistant(assistant)}
-              className={assistant.id === activeAssistant?.id ? 'active' : ''}>
-              <AssistantName className="name">{assistant.name || t('chat.default.name')}</AssistantName>
-              {assistant.id === activeAssistant?.id && (
-                <MenuButton onClick={() => EventEmitter.emit(EVENT_NAMES.SWITCH_TOPIC_SIDEBAR)}>
-                  <TopicCount className="topics-count">{assistant.topics.length}</TopicCount>
-                </MenuButton>
-              )}
-            </AssistantItem>
-          </Dropdown>
-        )}
+        {(assistant) => renderAssistantItem(assistant)}
       </DragableList>
 
       {!dragging && (
