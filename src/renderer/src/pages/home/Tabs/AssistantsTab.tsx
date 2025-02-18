@@ -261,16 +261,27 @@ const Assistants: FC<Props> = ({
     const originalAssistantsMap = new Map(assistants.map(a => [a.id, a]))
     const updatedAssistants: Assistant[] = []
     let currentGroupId = ''
+    
+    // 跟踪受影响的分组
+    const affectedGroups = new Set<string>()
 
     newList.forEach((item) => {
       if (item.type === 'group') {
         currentGroupId = item.id === 'ungrouped' ? '' : item.id
+        affectedGroups.add(item.id)
       } else {
         const original = originalAssistantsMap.get(item.id)
+        const newGroupId = currentGroupId === 'ungrouped' ? '' : currentGroupId
+        
+        // 如果分组发生了变化，将目标分组添加到受影响列表
+        if (original?.groupId !== newGroupId) {
+          affectedGroups.add(currentGroupId)
+        }
+        
         updatedAssistants.push({
           ...original,
           ...item,
-          groupId: currentGroupId === 'ungrouped' ? '' : currentGroupId
+          groupId: newGroupId
         })
       }
     })
@@ -280,6 +291,17 @@ const Assistants: FC<Props> = ({
         updatedAssistants.push(assistant)
       }
     })
+
+    // 自动展开受影响的分组
+    setExpandedGroups(prev => ({
+      ...prev,
+      ...Array.from(affectedGroups).reduce((acc, groupId) => {
+        if (groupId !== 'ungrouped') {
+          acc[groupId] = true // 强制展开受影响的分组
+        }
+        return acc
+      }, {} as Record<string, boolean>)
+    }))
 
     updateAssistants(updatedAssistants)
   }
@@ -317,8 +339,15 @@ const Assistants: FC<Props> = ({
             return (
               <Dropdown key={item.id} menu={{ items: getGroupMenuItems(item) }} trigger={['contextMenu']}>
                 <GroupHeader onClick={() => toggleGroup(item.id)}>
-                  {expandedGroups[item.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
-                  <GroupName>{item.name}</GroupName>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {expandedGroups[item.id] ? <CaretDownOutlined /> : <CaretRightOutlined />}
+                    <GroupName>{item.name}</GroupName>
+                  </div>
+                  <CountBadge>
+                    {item.id === 'ungrouped' 
+                      ? assistants.filter(a => !a.groupId).length
+                      : assistants.filter(a => a.groupId === item.id).length}
+                  </CountBadge>
                 </GroupHeader>
               </Dropdown>
             )
@@ -419,6 +448,7 @@ const TopicCount = styled.div`
 const GroupHeader = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 7px 12px;
   margin: 0 10px;
   cursor: pointer;
@@ -437,6 +467,16 @@ const GroupHeader = styled.div`
   &:hover::after {
     background: var(--color-primary);
   }
+`
+
+const CountBadge = styled.span`
+  background: var(--color-background);
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--color-text-3);
+  min-width: 25px;
+  text-align: center;
 `
 
 const GroupName = styled.div`
